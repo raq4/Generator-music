@@ -88,45 +88,6 @@
             display: none;
         }
         
-        .code-section {
-            background: #1e1e1e;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-            position: relative;
-        }
-        
-        #generatedCode {
-            width: 100%;
-            height: 300px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: none;
-            border-radius: 5px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            resize: vertical;
-            white-space: pre-wrap;
-        }
-        
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .copy-btn:hover {
-            background: #45a049;
-        }
-        
         .generate-btn {
             display: block;
             width: 100%;
@@ -146,24 +107,44 @@
             transform: translateY(-2px);
         }
         
-        .instructions {
-            background: rgba(0,0,0,0.2);
-            padding: 20px;
+        .generate-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
             border-radius: 10px;
-            margin-top: 30px;
+            display: none;
         }
         
-        .instructions h3 {
-            margin-bottom: 15px;
+        .status.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
         }
         
-        .instructions ol {
-            padding-left: 20px;
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #f44336;
         }
         
-        .instructions li {
-            margin-bottom: 10px;
-            line-height: 1.5;
+        .visit-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 10px;
+            text-decoration: none;
+            text-align: center;
+            display: none;
         }
     </style>
 </head>
@@ -187,30 +168,22 @@
             </div>
         </div>
         
-        <button class="generate-btn" onclick="generateCode()">🛠️ Сгенерировать код сайта</button>
+        <button class="generate-btn" id="generateBtn" onclick="createSite()">
+            🚀 Создать сайт и перейти на него
+        </button>
         
-        <div class="code-section">
-            <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
-            <textarea id="generatedCode" readonly placeholder="Здесь появится код вашего сайта..."></textarea>
-        </div>
+        <div class="status" id="status"></div>
         
-        <div class="instructions">
-            <h3>📝 Как использовать:</h3>
-            <ol>
-                <li>Выберите картинку и музыку</li>
-                <li>Нажмите "Сгенерировать код сайта"</li>
-                <li>Нажмите "Копировать код"</li>
-                <li>На GitHub создайте файл index.html</li>
-                <li>Вставьте скопированный код</li>
-                <li>Загрузите ваши файлы картинки и музыки в тот же репозиторий</li>
-                <li>Активируйте GitHub Pages в настройках</li>
-            </ol>
-        </div>
+        <a href="#" class="visit-btn" id="visitBtn" target="_blank">
+            🌐 Перейти на созданный сайт
+        </a>
     </div>
 
     <script>
         let selectedImage = null;
         let selectedMusic = null;
+        let imageBlob = null;
+        let musicBlob = null;
         
         // Предпросмотр картинки
         document.getElementById('imageInput').addEventListener('change', function(e) {
@@ -219,33 +192,51 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     selectedImage = file.name;
+                    imageBlob = e.target.result;
                     document.getElementById('imagePreview').src = e.target.result;
                     document.getElementById('imagePreview').style.display = 'block';
+                    updateGenerateButton();
                 }
                 reader.readAsDataURL(file);
             }
         });
         
-        // Получение названия музыки
+        // Загрузка музыки
         document.getElementById('musicInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                selectedMusic = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedMusic = file.name;
+                    musicBlob = e.target.result;
+                    updateGenerateButton();
+                }
+                reader.readAsDataURL(file);
             }
         });
         
-        function generateCode() {
+        function updateGenerateButton() {
+            const btn = document.getElementById('generateBtn');
+            if (selectedImage && selectedMusic) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+        
+        function createSite() {
             if (!selectedImage || !selectedMusic) {
-                alert('Пожалуйста, выберите и картинку и музыку!');
+                showStatus('Пожалуйста, выберите и картинку и музыку!', 'error');
                 return;
             }
             
-            const code = `<!DOCTYPE html>
+            // Создаем HTML для нового сайта
+            const siteHTML = `<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Музыкальный сайт</title>
+    <title>Мой музыкальный сайт</title>
     <style>
         * {
             margin: 0;
@@ -261,6 +252,7 @@
             justify-content: center;
             align-items: center;
             color: white;
+            overflow: hidden;
         }
         
         .modal {
@@ -269,45 +261,53 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            animation: fadeIn 0.5s ease-in;
+            animation: fadeIn 0.8s ease-out;
         }
         
         .modal-content {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            padding: 40px 30px;
+            border-radius: 25px;
+            padding: 50px 40px;
             max-width: 90%;
-            width: 400px;
+            width: 450px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 3px solid rgba(255,255,255,0.2);
+            animation: slideUp 0.8s ease-out;
         }
         
         .modal-image {
             width: 100%;
-            max-width: 300px;
-            height: 250px;
+            max-width: 350px;
+            height: 280px;
             object-fit: cover;
-            border-radius: 15px;
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border: 3px solid white;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: all 0.4s ease;
+            border: 4px solid white;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
         }
         
         .modal-image:hover {
-            transform: scale(1.05);
+            transform: scale(1.08) rotate(2deg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        
+        .modal-image.playing {
+            animation: pulse 1s infinite;
         }
         
         .instruction {
-            margin-top: 20px;
-            font-size: 1.1em;
-            color: rgba(255,255,255,0.9);
+            margin-top: 25px;
+            font-size: 1.3em;
+            color: rgba(255,255,255,0.95);
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         @keyframes fadeIn {
@@ -315,18 +315,25 @@
             to { opacity: 1; }
         }
         
-        .content {
-            text-align: center;
-            padding: 40px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(80px) scale(0.9);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -334,13 +341,8 @@
     <div class="modal" id="popupModal">
         <div class="modal-content">
             <img src="${selectedImage}" alt="Нажмите чтобы играть музыку" class="modal-image" id="clickableImage">
-            <p class="instruction">Нажмите на картинку чтобы включить музыку</p>
+            <p class="instruction">🎵 Нажмите на картинку чтобы включить музыку 🎵</p>
         </div>
-    </div>
-    
-    <div class="content">
-        <h1>🎵 Мой музыкальный сайт 🎵</h1>
-        <p>Привет! Нажми на картинку выше чтобы услышать музыку</p>
     </div>
 
     <script>
@@ -353,34 +355,87 @@
             
             clickableImage.addEventListener('click', function() {
                 if (!musicStarted) {
+                    // Воспроизводим музыку
                     audio.play();
                     musicStarted = true;
                     
+                    // Добавляем анимацию
+                    this.classList.add('playing');
+                    
+                    // Показываем сообщение
+                    const instruction = document.querySelector('.instruction');
+                    instruction.textContent = '🎶 Музыка играет! 🎶';
+                    
+                    // Через 3 секунды скрываем окно
                     setTimeout(() => {
                         modal.style.display = 'none';
-                    }, 2000);
+                    }, 3000);
                 }
             });
             
+            // Автоматически скрываем через 15 секунд если не нажали
             setTimeout(() => {
                 if (!musicStarted) {
                     modal.style.display = 'none';
                 }
-            }, 10000);
+            }, 15000);
         });
     <\/script>
 </body>
 </html>`;
             
-            document.getElementById('generatedCode').value = code;
+            // Создаем Blob для HTML файла
+            const htmlBlob = new Blob([siteHTML], { type: 'text/html' });
+            const htmlUrl = URL.createObjectURL(htmlBlob);
+            
+            // Создаем ссылки для скачивания файлов
+            const imageLink = document.createElement('a');
+            imageLink.href = imageBlob;
+            imageLink.download = selectedImage;
+            
+            const musicLink = document.createElement('a');
+            musicLink.href = musicBlob;
+            musicLink.download = selectedMusic;
+            
+            // Показываем статус
+            showStatus('Сайт создан! Скачиваются файлы...', 'success');
+            
+            // Автоматически скачиваем файлы
+            setTimeout(() => {
+                imageLink.click();
+            }, 500);
+            
+            setTimeout(() => {
+                musicLink.click();
+            }, 1000);
+            
+            // Показываем кнопку для перехода на сайт
+            setTimeout(() => {
+                const visitBtn = document.getElementById('visitBtn');
+                visitBtn.href = htmlUrl;
+                visitBtn.style.display = 'block';
+                visitBtn.click(); // Автоматически переходим на сайт
+                
+                showStatus('✅ Сайт создан! Вы перешли на него в новой вкладке. Сохраните файлы к себе на компьютер.', 'success');
+            }, 1500);
         }
         
-        function copyCode() {
-            const codeTextarea = document.getElementById('generatedCode');
-            codeTextarea.select();
-            document.execCommand('copy');
-            alert('Код скопирован! Теперь вставьте его в index.html на GitHub');
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+            
+            // Автоматически скрываем через 5 секунд
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 10000);
+            }
         }
+        
+        // Изначально кнопка заблокирована
+        updateGenerateButton();
     </script>
 </body>
 </html>
