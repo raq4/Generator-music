@@ -42,12 +42,6 @@
             margin-bottom: 30px;
         }
         
-        @media (max-width: 768px) {
-            .upload-section {
-                grid-template-columns: 1fr;
-            }
-        }
-        
         .upload-box {
             background: #222;
             padding: 20px;
@@ -126,17 +120,9 @@
             color: white;
         }
         
-        .generate-btn:hover {
-            background: #ff3333;
-        }
-        
         .copy-btn {
             background: #44ff44;
             color: black;
-        }
-        
-        .copy-btn:hover {
-            background: #33ff33;
         }
         
         .instructions {
@@ -161,12 +147,6 @@
             margin-bottom: 10px;
             line-height: 1.5;
         }
-        
-        .file-info {
-            color: #0f0;
-            font-size: 12px;
-            margin-top: 5px;
-        }
     </style>
 </head>
 <body>
@@ -180,13 +160,11 @@
                 <div class="preview">
                     <img id="imagePreview" src="#" alt="Предпросмотр">
                 </div>
-                <div id="imageInfo" class="file-info"></div>
             </div>
             
             <div class="upload-box">
                 <h3>🎵 ВЫБЕРИТЕ МУЗЫКУ MP3</h3>
                 <input type="file" id="musicInput" accept="audio/mp3">
-                <div id="musicInfo" class="file-info"></div>
             </div>
         </div>
         
@@ -217,7 +195,6 @@
         let selectedImage = null;
         let selectedMusic = null;
         
-        // Обработчик картинки
         document.getElementById('imageInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -228,16 +205,13 @@
                     document.getElementById('imagePreview').style.display = 'block';
                 }
                 reader.readAsDataURL(file);
-                document.getElementById('imageInfo').textContent = `Файл: ${file.name}`;
             }
         });
         
-        // Обработчик музыки
         document.getElementById('musicInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 selectedMusic = file.name;
-                document.getElementById('musicInfo').textContent = `Файл: ${file.name}`;
             }
         });
         
@@ -259,18 +233,12 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
         body {
             background: #000;
             height: 100vh;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
-        
-        .fullscreen-image {
-            position: fixed;
-            top: 0;
-            left: 0;
+        img {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -279,53 +247,41 @@
     </style>
 </head>
 <body>
-    <img src="${selectedImage}" class="fullscreen-image" onclick="playMusic()">
+    <img src="${selectedImage}" onclick="playMusic()">
 
     <script>
         let audio = null;
-        let musicPlaying = false;
+        let played = false;
         
         function playMusic() {
-            if (!musicPlaying) {
+            if (!played) {
                 if (!audio) {
                     audio = new Audio('${selectedMusic}');
-                    
-                    audio.addEventListener('error', function() {
-                        console.log('Ошибка загрузки музыки');
-                    });
+                    audio.play();
+                    played = true;
                 }
-                
-                audio.play().then(function() {
-                    musicPlaying = true;
-                }).catch(function(error) {
-                    console.log('Ошибка воспроизведения:', error);
-                });
-            } else {
-                audio.pause();
-                audio.currentTime = 0;
-                musicPlaying = false;
             }
         }
         
-        // Автозапуск при загрузке (работает на десктопе)
-        setTimeout(function() {
-            if (!musicPlaying) {
-                document.querySelector('.fullscreen-image').click();
-            }
-        }, 1000);
+        // Автозапуск при загрузке
+        window.onload = function() {
+            setTimeout(function() {
+                document.querySelector('img').click();
+            }, 500);
+        };
     <\\/script>
 </body>
 </html>`;
             
             document.getElementById('generatedCode').value = code;
-            alert('КОД СОЗДАН! Нажмите "КОПИРОВАТЬ КОД"');
+            alert('КОД СОЗДАН!');
         }
         
         function copyCode() {
             const textarea = document.getElementById('generatedCode');
             textarea.select();
             document.execCommand('copy');
-            alert('✅ КОД СКОПИРОВАН! Вставьте его в index.html на GitHub');
+            alert('✅ КОД СКОПИРОВАН!');
         }
     </script>
 </body>
