@@ -79,6 +79,33 @@
             border-radius: 10px;
             display: none;
         }
+        
+        .share-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        #shareLink {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .copy-btn {
+            background: #4CAF50 !important;
+        }
+        
+        .copy-btn:hover {
+            background: #45a049 !important;
+        }
     </style>
 </head>
 <body>
@@ -98,12 +125,19 @@
             <input type="file" id="musicInput" accept="audio/mp3">
         </div>
         
-        <button onclick="createAndRedirect()">🚀 Создать сайт и перейти</button>
+        <button onclick="createAndSave()">🚀 Создать сайт</button>
+        
+        <div class="share-section" id="shareSection">
+            <h3>✅ Сайт создан!</h3>
+            <p>Ссылка для друзей:</p>
+            <input type="text" id="shareLink" readonly>
+            <button class="copy-btn" onclick="copyLink()">📋 Копировать ссылку</button>
+            <button onclick="openSite()">🌐 Открыть сайт</button>
+        </div>
     </div>
 
     <script>
-        let imageUrl = '';
-        let musicUrl = '';
+        let currentSiteData = null;
         
         // Предпросмотр картинки
         document.getElementById('imageInput').addEventListener('change', function(e) {
@@ -111,7 +145,6 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    imageUrl = e.target.result;
                     document.getElementById('imagePreview').src = e.target.result;
                     document.getElementById('imagePreview').style.display = 'block';
                 }
@@ -119,19 +152,7 @@
             }
         });
         
-        // Загрузка музыки
-        document.getElementById('musicInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    musicUrl = e.target.result;
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        function createAndRedirect() {
+        function createAndSave() {
             const imageInput = document.getElementById('imageInput');
             const musicInput = document.getElementById('musicInput');
             
@@ -140,7 +161,65 @@
                 return;
             }
             
-            // Создаем сайт в новой вкладке
+            const imageFile = imageInput.files[0];
+            const musicFile = musicInput.files[0];
+            
+            // Читаем оба файла
+            const reader1 = new FileReader();
+            const reader2 = new FileReader();
+            
+            reader1.onload = function(e) {
+                const imageData = e.target.result;
+                
+                reader2.onload = function(e) {
+                    const musicData = e.target.result;
+                    
+                    // Сохраняем сайт в localStorage
+                    const siteId = 'music_site_' + Date.now();
+                    const siteData = {
+                        id: siteId,
+                        image: imageData,
+                        music: musicData,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Сохраняем в localStorage
+                    localStorage.setItem(siteId, JSON.stringify(siteData));
+                    currentSiteData = siteData;
+                    
+                    // Показываем ссылку для общего доступа
+                    showShareLink(siteId);
+                    
+                };
+                reader2.readAsDataURL(musicFile);
+            };
+            reader1.readAsDataURL(imageFile);
+        }
+        
+        function showShareLink(siteId) {
+            // Создаем уникальную ссылку
+            const shareUrl = window.location.href.split('?')[0] + '?site=' + siteId;
+            document.getElementById('shareLink').value = shareUrl;
+            document.getElementById('shareSection').style.display = 'block';
+            
+            // Прокручиваем к разделу с ссылкой
+            document.getElementById('shareSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function copyLink() {
+            const linkInput = document.getElementById('shareLink');
+            linkInput.select();
+            document.execCommand('copy');
+            alert('Ссылка скопирована! Отправьте её друзьям 🎵');
+        }
+        
+        function openSite() {
+            if (currentSiteData) {
+                openMusicSite(currentSiteData);
+            }
+        }
+        
+        function openMusicSite(siteData) {
             const newWindow = window.open('', '_blank');
             
             const siteCode = `
@@ -149,7 +228,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой Музыкальный Сайт</title>
+    <title>Музыкальный Сайт</title>
     <style>
         * {
             margin: 0;
@@ -173,107 +252,41 @@
             object-fit: cover;
             cursor: pointer;
         }
-        
-        #clickText {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 24px;
-            background: rgba(0,0,0,0.8);
-            padding: 20px 40px;
-            border-radius: 15px;
-            z-index: 100;
-            animation: pulse 2s infinite;
-            text-align: center;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.05); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .playing {
-            animation: none;
-            background: rgba(76, 175, 80, 0.9);
-        }
     </style>
 </head>
 <body>
-    <img id="fullscreenImage" src="${imageUrl}" alt="Нажми для музыки">
-    <div id="clickText">🎵 Нажми на картинку для музыки 🎵</div>
+    <img id="fullscreenImage" src="${siteData.image}" alt="Нажми для музыки">
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const image = document.getElementById('fullscreenImage');
-            const clickText = document.getElementById('clickText');
-            const audio = new Audio("${musicUrl}");
+            const audio = new Audio("${siteData.music}");
             
             let musicPlaying = false;
-            
-            // Проверяем загрузку элементов
-            image.onload = function() {
-                console.log('Картинка загружена');
-            };
-            
-            image.onerror = function() {
-                clickText.textContent = 'Ошибка загрузки картинки';
-                clickText.style.background = 'rgba(244, 67, 54, 0.9)';
-            };
-            
-            audio.addEventListener('canplaythrough', function() {
-                console.log('Музыка готова к воспроизведению');
-            });
-            
-            audio.addEventListener('error', function() {
-                clickText.textContent = 'Ошибка загрузки музыки';
-                clickText.style.background = 'rgba(244, 67, 54, 0.9)';
-            });
             
             // При нажатии на картинку
             image.addEventListener('click', function() {
                 if (!musicPlaying) {
-                    clickText.textContent = '🎶 Запускаем музыку... 🎶';
-                    clickText.classList.remove('playing');
-                    
                     audio.play().then(function() {
                         musicPlaying = true;
-                        clickText.textContent = '🎵 Музыка играет! 🎵';
-                        clickText.classList.add('playing');
-                        
-                        // Скрываем текст через 2 секунды
-                        setTimeout(function() {
-                            clickText.classList.add('hidden');
-                        }, 2000);
-                        
+                        image.style.filter = 'brightness(1.1)';
                     }).catch(function(error) {
                         console.log('Ошибка воспроизведения:', error);
-                        clickText.textContent = '🔊 Нажми еще раз для музыки 🔊';
-                        clickText.style.background = 'rgba(255, 152, 0, 0.9)';
                     });
+                } else {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    musicPlaying = false;
+                    image.style.filter = 'brightness(1)';
                 }
             });
             
-            // Автоскрытие текста через 20 секунд если не нажали
-            setTimeout(function() {
-                if (!musicPlaying) {
-                    clickText.classList.add('hidden');
-                }
-            }, 20000);
-            
-            // Автозапуск музыки через 3 секунды (опционально)
+            // Автозапуск музыки через 1 секунду
             setTimeout(function() {
                 if (!musicPlaying) {
                     image.click();
                 }
-            }, 3000);
+            }, 1000);
         });
     <\/script>
 </body>
@@ -281,10 +294,23 @@
             
             newWindow.document.write(siteCode);
             newWindow.document.close();
-            
-            // Фокусируемся на новой вкладке
             newWindow.focus();
         }
+        
+        // Проверяем URL при загрузке - если есть параметр site, открываем сайт
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const siteId = urlParams.get('site');
+            
+            if (siteId) {
+                const siteData = localStorage.getItem(siteId);
+                if (siteData) {
+                    openMusicSite(JSON.parse(siteData));
+                } else {
+                    alert('Сайт не найден или был удален');
+                }
+            }
+        });
     </script>
 </body>
 </html>
