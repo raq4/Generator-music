@@ -69,16 +69,15 @@
             background: #FF5252;
         }
         
-        #downloadLink {
-            display: none;
-            text-align: center;
-            margin-top: 20px;
-            padding: 15px;
-            background: #4CAF50;
-            color: white;
-            text-decoration: none;
+        .preview {
+            margin-top: 10px;
+        }
+        
+        #imagePreview {
+            max-width: 100%;
+            max-height: 200px;
             border-radius: 10px;
-            font-size: 18px;
+            display: none;
         }
     </style>
 </head>
@@ -89,6 +88,9 @@
         <div class="upload-box">
             <h3>📷 Выберите картинку</h3>
             <input type="file" id="imageInput" accept="image/*">
+            <div class="preview">
+                <img id="imagePreview" src="#" alt="Предпросмотр">
+            </div>
         </div>
         
         <div class="upload-box">
@@ -96,13 +98,40 @@
             <input type="file" id="musicInput" accept="audio/mp3">
         </div>
         
-        <button onclick="generateSite()">🚀 Создать сайт</button>
-        
-        <a id="downloadLink" download="music-site.html">📥 Скачать HTML файл</a>
+        <button onclick="createAndRedirect()">🚀 Создать сайт и перейти</button>
     </div>
 
     <script>
-        function generateSite() {
+        let imageUrl = '';
+        let musicUrl = '';
+        
+        // Предпросмотр картинки
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageUrl = e.target.result;
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Загрузка музыки
+        document.getElementById('musicInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    musicUrl = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        function createAndRedirect() {
             const imageInput = document.getElementById('imageInput');
             const musicInput = document.getElementById('musicInput');
             
@@ -111,15 +140,16 @@
                 return;
             }
             
-            const imageName = imageInput.files[0].name;
-            const musicName = musicInput.files[0].name;
+            // Создаем сайт в новой вкладке
+            const newWindow = window.open('', '_blank');
             
-            const siteCode = `<!DOCTYPE html>
+            const siteCode = `
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Музыкальный Сайт</title>
+    <title>Мой Музыкальный Сайт</title>
     <style>
         * {
             margin: 0;
@@ -135,11 +165,13 @@
         }
         
         #fullscreenImage {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             cursor: pointer;
-            display: block;
         }
         
         #clickText {
@@ -149,51 +181,72 @@
             transform: translate(-50%, -50%);
             color: white;
             font-size: 24px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             padding: 20px 40px;
-            border-radius: 10px;
+            border-radius: 15px;
             z-index: 100;
             animation: pulse 2s infinite;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.3);
         }
         
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.05); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         
         .hidden {
             display: none;
         }
+        
+        .playing {
+            animation: none;
+            background: rgba(76, 175, 80, 0.9);
+        }
     </style>
 </head>
 <body>
-    <img id="fullscreenImage" src="${imageName}" alt="Нажми для музыки">
-    <div id="clickText">Нажми на картинку для музыки</div>
+    <img id="fullscreenImage" src="${imageUrl}" alt="Нажми для музыки">
+    <div id="clickText">🎵 Нажми на картинку для музыки 🎵</div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const image = document.getElementById('fullscreenImage');
             const clickText = document.getElementById('clickText');
-            const audio = new Audio('${musicName}');
+            const audio = new Audio("${musicUrl}");
             
             let musicPlaying = false;
             
-            // Проверяем загрузку музыки
+            // Проверяем загрузку элементов
+            image.onload = function() {
+                console.log('Картинка загружена');
+            };
+            
+            image.onerror = function() {
+                clickText.textContent = 'Ошибка загрузки картинки';
+                clickText.style.background = 'rgba(244, 67, 54, 0.9)';
+            };
+            
             audio.addEventListener('canplaythrough', function() {
-                console.log('Музыка готова');
+                console.log('Музыка готова к воспроизведению');
             });
             
             audio.addEventListener('error', function() {
                 clickText.textContent = 'Ошибка загрузки музыки';
+                clickText.style.background = 'rgba(244, 67, 54, 0.9)';
             });
             
             // При нажатии на картинку
             image.addEventListener('click', function() {
                 if (!musicPlaying) {
+                    clickText.textContent = '🎶 Запускаем музыку... 🎶';
+                    clickText.classList.remove('playing');
+                    
                     audio.play().then(function() {
                         musicPlaying = true;
-                        clickText.textContent = 'Музыка играет!';
+                        clickText.textContent = '🎵 Музыка играет! 🎵';
+                        clickText.classList.add('playing');
                         
                         // Скрываем текст через 2 секунды
                         setTimeout(function() {
@@ -201,32 +254,36 @@
                         }, 2000);
                         
                     }).catch(function(error) {
-                        clickText.textContent = 'Нажми еще раз для музыки';
-                        console.log('Ошибка:', error);
+                        console.log('Ошибка воспроизведения:', error);
+                        clickText.textContent = '🔊 Нажми еще раз для музыки 🔊';
+                        clickText.style.background = 'rgba(255, 152, 0, 0.9)';
                     });
                 }
             });
             
-            // Автоскрытие текста через 15 секунд
+            // Автоскрытие текста через 20 секунд если не нажали
             setTimeout(function() {
                 if (!musicPlaying) {
                     clickText.classList.add('hidden');
                 }
-            }, 15000);
+            }, 20000);
+            
+            // Автозапуск музыки через 3 секунды (опционально)
+            setTimeout(function() {
+                if (!musicPlaying) {
+                    image.click();
+                }
+            }, 3000);
         });
     <\/script>
 </body>
 </html>`;
             
-            // Создаем ссылку для скачивания
-            const blob = new Blob([siteCode], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.getElementById('downloadLink');
-            downloadLink.href = url;
-            downloadLink.style.display = 'block';
-            downloadLink.click();
+            newWindow.document.write(siteCode);
+            newWindow.document.close();
             
-            alert('Сайт создан! Скачанный файл сохраните как index.html и загрузите на GitHub вместе с вашими файлами.');
+            // Фокусируемся на новой вкладке
+            newWindow.focus();
         }
     </script>
 </body>
