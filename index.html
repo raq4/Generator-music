@@ -16,17 +16,16 @@
             background: #000;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .fullscreen-image {
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             cursor: pointer;
-            z-index: 1;
         }
         
         .click-instruction {
@@ -56,70 +55,76 @@
     </style>
 </head>
 <body>
-    <img src="your-image.jpg" alt="Нажми для музыки" class="fullscreen-image" id="mainImage">
+    <img src="IMG_9618.png" alt="Нажми для музыки" class="fullscreen-image" id="mainImage">
     <div class="click-instruction" id="instruction">Нажми на картинку для музыки</div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const image = document.getElementById('mainImage');
             const instruction = document.getElementById('instruction');
-            const audio = new Audio('your-music.mp3');
             
+            // Создаем аудио элемент
+            const audio = new Audio();
+            
+            // Пробуем разные форматы музыки
+            const audioSources = [
+                'music.mp3',
+                'music.ogg',
+                'music.wav',
+                'audio.mp3'
+            ];
+            
+            let currentSourceIndex = 0;
             let musicStarted = false;
             
-            // Проверяем загрузку картинки
-            image.onload = function() {
-                console.log('Картинка загружена');
-            };
+            // Функция для попытки загрузки музыки
+            function tryLoadMusic() {
+                if (currentSourceIndex >= audioSources.length) {
+                    instruction.textContent = 'Музыкальный файл не найден';
+                    return;
+                }
+                
+                const source = audioSources[currentSourceIndex];
+                audio.src = source;
+                
+                audio.load();
+                
+                audio.oncanplaythrough = function() {
+                    console.log('Музыка загружена:', source);
+                    instruction.textContent = 'Нажми на картинку для музыки';
+                };
+                
+                audio.onerror = function() {
+                    console.log('Ошибка загрузки:', source);
+                    currentSourceIndex++;
+                    tryLoadMusic();
+                };
+            }
             
-            image.onerror = function() {
-                console.log('Ошибка загрузки картинки');
-                instruction.textContent = 'Ошибка: картинка не найдена!';
-            };
-            
-            // Проверяем загрузку музыки
-            audio.addEventListener('canplaythrough', function() {
-                console.log('Музыка готова к воспроизведению');
-            });
-            
-            audio.addEventListener('error', function() {
-                console.log('Ошибка загрузки музыки');
-                instruction.textContent = 'Ошибка: музыка не найдена!';
-            });
+            // Начинаем загрузку музыки
+            tryLoadMusic();
             
             // При нажатии на картинку
             image.addEventListener('click', function() {
                 if (!musicStarted) {
-                    console.log('Пытаемся воспроизвести музыку...');
-                    
-                    // Показываем что музыка запускается
                     instruction.textContent = 'Запускаем музыку...';
                     
-                    // Воспроизводим музыку
                     audio.play().then(function() {
-                        console.log('Музыка начала играть');
                         musicStarted = true;
                         instruction.textContent = 'Музыка играет!';
                         
-                        // Скрываем надпись через 2 секунды
                         setTimeout(function() {
                             instruction.classList.add('hidden');
                         }, 2000);
                         
                     }).catch(function(error) {
                         console.log('Ошибка воспроизведения:', error);
-                        instruction.textContent = 'Ошибка: не удалось запустить музыку';
-                        
-                        // Для мобильных устройств - просим взаимодействие
-                        if (error.name === 'NotAllowedError') {
-                            instruction.textContent = 'Нажмите еще раз для музыки';
-                            musicStarted = false;
-                        }
+                        instruction.textContent = 'Нажми еще раз для музыки';
                     });
                 }
             });
             
-            // Автоматически скрываем надпись через 10 секунд если не нажали
+            // Автоматически скрываем надпись через 10 секунд
             setTimeout(function() {
                 if (!musicStarted) {
                     instruction.classList.add('hidden');
