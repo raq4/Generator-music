@@ -97,6 +97,7 @@
             border: none;
             border-radius: 10px;
             color: white;
+            word-break: break-all;
         }
         
         .copy-btn {
@@ -105,6 +106,12 @@
         
         .copy-btn:hover {
             background: #45a049 !important;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -125,6 +132,8 @@
             <input type="file" id="musicInput" accept="audio/mp3">
         </div>
         
+        <div class="loading" id="loading">⏳ Создаем сайт...</div>
+        
         <button onclick="createAndSave()">🚀 Создать сайт</button>
         
         <div class="share-section" id="shareSection">
@@ -137,8 +146,6 @@
     </div>
 
     <script>
-        let currentSiteData = null;
-        
         // Предпросмотр картинки
         document.getElementById('imageInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -161,6 +168,8 @@
                 return;
             }
             
+            document.getElementById('loading').style.display = 'block';
+            
             const imageFile = imageInput.files[0];
             const musicFile = musicInput.files[0];
             
@@ -174,21 +183,20 @@
                 reader2.onload = function(e) {
                     const musicData = e.target.result;
                     
-                    // Сохраняем сайт в localStorage
-                    const siteId = 'music_site_' + Date.now();
+                    // Кодируем данные в base64 для URL
                     const siteData = {
-                        id: siteId,
-                        image: imageData,
-                        music: musicData,
-                        createdAt: new Date().toISOString()
+                        image: imageData.split(',')[1], // убираем префикс data:image/...
+                        music: musicData.split(',')[1], // убираем префикс data:audio/...
+                        imageType: imageFile.type,
+                        musicType: musicFile.type
                     };
                     
-                    // Сохраняем в localStorage
-                    localStorage.setItem(siteId, JSON.stringify(siteData));
-                    currentSiteData = siteData;
+                    // Создаем компактную версию для URL
+                    const compressedData = btoa(JSON.stringify(siteData));
                     
-                    // Показываем ссылку для общего доступа
-                    showShareLink(siteId);
+                    // Создаем ссылку
+                    showShareLink(compressedData);
+                    document.getElementById('loading').style.display = 'none';
                     
                 };
                 reader2.readAsDataURL(musicFile);
@@ -196,9 +204,9 @@
             reader1.readAsDataURL(imageFile);
         }
         
-        function showShareLink(siteId) {
-            // Создаем уникальную ссылку
-            const shareUrl = window.location.href.split('?')[0] + '?site=' + siteId;
+        function showShareLink(compressedData) {
+            // Создаем ссылку с данными в URL
+            const shareUrl = window.location.href.split('?')[0] + '?site=' + encodeURIComponent(compressedData);
             document.getElementById('shareLink').value = shareUrl;
             document.getElementById('shareSection').style.display = 'block';
             
@@ -214,13 +222,39 @@
         }
         
         function openSite() {
-            if (currentSiteData) {
-                openMusicSite(currentSiteData);
-            }
+            const linkInput = document.getElementById('shareLink');
+            window.open(linkInput.value, '_blank');
         }
         
+        // Проверяем URL при загрузке - если есть параметр site, открываем сайт
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const siteDataEncoded = urlParams.get('site');
+            
+            if (siteDataEncoded) {
+                try {
+                    const siteData = JSON.parse(atob(siteDataEncoded));
+                    openMusicSite(siteData);
+                } catch (e) {
+                    document.body.innerHTML = `
+                        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; color: white; font-family: Arial;">
+                            <div style="text-align: center; padding: 20px;">
+                                <h1>🎵 Музыкальный Сайт 🎵</h1>
+                                <p>Ошибка загрузки сайта</p>
+                                <button onclick="window.location.href = window.location.href.split('?')[0]" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    Создать новый сайт
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
+        
         function openMusicSite(siteData) {
-            const newWindow = window.open('', '_blank');
+            // Создаем data URLs из base64
+            const imageUrl = `data:${siteData.imageType};base64,${siteData.image}`;
+            const musicUrl = `data:${siteData.musicType};base64,${siteData.music}`;
             
             const siteCode = `
 <!DOCTYPE html>
@@ -251,16 +285,17 @@
             height: 100%;
             object-fit: cover;
             cursor: pointer;
+            transition: filter 0.3s;
         }
     </style>
 </head>
 <body>
-    <img id="fullscreenImage" src="${siteData.image}" alt="Нажми для музыки">
+    <img id="fullscreenImage" src="${imageUrl}" alt="Музыкальный сайт">
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const image = document.getElementById('fullscreenImage');
-            const audio = new Audio("${siteData.music}");
+            const audio = new Audio("${musicUrl}");
             
             let musicPlaying = false;
             
@@ -292,25 +327,9 @@
 </body>
 </html>`;
             
-            newWindow.document.write(siteCode);
-            newWindow.document.close();
-            newWindow.focus();
+            document.write(siteCode);
+            document.close();
         }
-        
-        // Проверяем URL при загрузке - если есть параметр site, открываем сайт
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const siteId = urlParams.get('site');
-            
-            if (siteId) {
-                const siteData = localStorage.getItem(siteId);
-                if (siteData) {
-                    openMusicSite(JSON.parse(siteData));
-                } else {
-                    alert('Сайт не найден или был удален');
-                }
-            }
-        });
     </script>
 </body>
 </html>
